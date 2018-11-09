@@ -42,7 +42,7 @@ class Welcome extends Component {
                     </form>
                 </div>
                 <div className="mainresult">
-                    <h2> Here is the dirty info about the address {this.props.address} from server</h2>
+                    <h2> Here is the dirty info about the address</h2>
                     <pre>
                         {JSON.stringify(
                               this.state.data, undefined, 2
