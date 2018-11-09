@@ -8,7 +8,7 @@ class Welcome extends Component {
 
         // Set the state directly. Use props if necessary.
         this.state = {
-          data:"No data"
+          data:"Nothing searched yet"
         }
     }
 
@@ -42,15 +42,6 @@ class Welcome extends Component {
                     </form>
                 </div>
                 <div className="mainresult">
-                
-                    <h2> Here is the dirty info about the address {this.props.address}</h2>
-                    <pre>
-                        {JSON.stringify(
-                              this.props.data_from_api, undefined, 2
-                            )
-                        }
-                    </pre>
-
                     <h2> Here is the dirty info about the address {this.props.address} from server</h2>
                     <pre>
                         {JSON.stringify(
@@ -59,13 +50,6 @@ class Welcome extends Component {
                         }
                     </pre>
 
-                    <h2> Here is the dirty info about the fixed address from server</h2>
-                    <pre>
-                        {JSON.stringify(
-                              this.props.data_fixed_addr, undefined, 2
-                            )
-                        }
-                    </pre>
                 </div>
 
                 <div className="footer">
@@ -75,8 +59,7 @@ class Welcome extends Component {
                     </h3>
                     <hr/>
                 </div>
-                <div>Hello, {this.props.name}</div>
-                <a onClick={() => this.props.foofunc()}> click me! </a>
+                <div> Hint: There's info for 1EgV4FoVhCE7gfYhyV7Ryx9357jc44Gm4z </div>
             </div>);
   }
 }
