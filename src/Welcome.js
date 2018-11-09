@@ -4,44 +4,80 @@ class Welcome extends React.Component {
   
 
   render() {
-    return (<div>
-
-                <h1>The address {this.props.address} is {this.props.clean ? "clean" : "dirty"}</h1>
-                <h2>Here is the chain of events:</h2>
-                <div>{this.props.address} <a href="#">got</a> 2.7 BTC from 0x345346</div>
-                <div>0x345346 <a href="#">got</a> 7.6 BTC from 0xdeadbeef</div>
-                <div>0xdeadbeef is evil!</div>
-
+    return (<div className="all">
+                <div className="search">
+                    <h2> search </h2>
+                    <form action="" method="GET">
+                        <div className="form-group ui-widget">
+                            <div className="input-group add-on">
+                                <input className="form-control autocomplete" defaultValue="0x23443534" placeholder="Search address..." name="search"/>
+                                <div className="input-group-btn">
+                                    <button className="btn btn-default" type="submit">
+                                        <i className="glyphicon glyphicon-search"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div className="mainresult">
                 
-                <h2>Here is the dirty info about the address 0xdeadbeef:</h2>
-                <div>
+                    
+
+
+                    
+                    <h2>Here is the dirty info about the address {this.props.address}:</h2>
+                    <div>
+                        
+
+                        <table width="100%">
+                            <tbody>
+                                <tr>
+                                    <td>
+                                    Amount
+                                    </td>
+                                    <td>
+                                    {this.props.scam_data.infection_data.amount}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                    infected_by_hash
+                                    </td>
+                                    <td>
+                                    {this.props.scam_data.infection_data.infected_by_hash}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                    infected_by_addr
+                                    </td>
+                                    <td>
+                                        <a href={"?address=" + this.props.scam_data.infection_data.infected_by_addr}>
+                                            {this.props.scam_data.infection_data.infected_by_addr}
+                                        </a>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                    </div>
+                    <h2> Here is the dirty info about the address {this.props.address}</h2>
                     <pre>
-                    {
-                        JSON.stringify({
-                      "id": 6083,
-                      "name": "myetherwalletmsg.com",
-                      "url": "http://myetherwalletmsg.com",
-                      "coin": "ETH",
-                      "category": "Phishing",
-                      "subcategory": "MyEtherWallet",
-                      "description": "Fake MyEtherWallet phishing for keys with POST /store.php",
-                      "reporter": "MyCrypto",
-                      "ip": "142.11.192.161",
-                      "nameservers": [
-                        "ns83.hostwindsdns.com",
-                        "ns84.hostwindsdns.com"
-                      ],
-                      "status": "Offline"
-                    }, undefined, 2)
-                    }
+                        {JSON.stringify(
+                              this.props.data_from_api, undefined, 2
+                            )
+                        }
                     </pre>
                 </div>
 
-                <hr/>
-                <h3>
-                    When you trade with your friend, you're trading with your friends friend...
-                </h3>
-                <hr/>
+                <div className="footer">
+                    <hr/>
+                    <h3>
+                        When you trade with your friend, you're trading with your friend's friend...
+                    </h3>
+                    <hr/>
+                </div>
                 <div>Hello, {this.props.name}</div>
                 <a onClick={() => this.props.foofunc()}> click me! </a>
             </div>);
