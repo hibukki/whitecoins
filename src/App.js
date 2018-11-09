@@ -13,6 +13,18 @@ class App extends Component {
         this.setState({ person_name: "new name" });
     }
 
+    constructor(props) {
+        // Required step: always call the parent class' constructor
+        super(props);
+
+        // Set the state directly. Use props if necessary.
+        this.state = {
+          address:"1EekHaBpdaxAFTyYLWApegYWPoBBcgknon",
+          person_name: "default name", 
+          clean:false,
+        }
+    }
+
     componentWillMount() {
         const clean_wallets = ['1', '9w384759w4', '29043857092845', '384w759823745', '9834759823754']
         const dirty_wallets = ['0', '9w384759w4', '29043857092845', '384w759823745', '9834759823754']
@@ -605,10 +617,11 @@ class App extends Component {
 
         const results = scam_info["result"];
 
-        const address = "1EekHaBpdaxAFTyYLWApegYWPoBBcgknon"
+        //const address = "1EekHaBpdaxAFTyYLWApegYWPoBBcgknon"
 
+        
         // this.person_name = "default_name";
-        this.setState({ person_name: "default name", address:address, clean:false });
+        //this.setState({ person_name: "default name", clean:false });
 
         const curr_scam_info = scam_info["1EekHaBpdaxAFTyYLWApegYWPoBBcgknon"];
         console.log("curr_scam_info");
@@ -616,8 +629,13 @@ class App extends Component {
         this.setState({curr_scam_info:curr_scam_info});
         // this.person_name = "default_name"
 
-        fetch('http://142.93.33.226:59876/search_addr/1EgV4FoVhCE7gfYhyV7Ryx9357jc44Gm4z')
-          .then(response => response.json())
+        //fetch('http://142.93.33.226:59876/search_addr/1EgV4FoVhCE7gfYhyV7Ryx9357jc44Gm4z')
+        //  .then(response => response.json())
+        //  .then(data => this.setState({ data }));
+        console.log("will mount with address:")
+        console.log(this.state.address)
+        fetch('http://crypto-pal.net:59876/search_addr/' + this.state.address)
+          .then(response => response)
           .then(data => this.setState({ data }));
 
         this.setState({hardcoded_from_api: {
@@ -644,6 +662,7 @@ class App extends Component {
                 clean={this.state.clean}
                 scam_data={this.state.curr_scam_info}
                 data_from_api={this.state.hardcoded_from_api}
+                data={this.state.data}
             />
         </div>
       </div>
