@@ -2,6 +2,11 @@ import React, { Component } from 'react';
 
 class Welcome extends React.Component {
   
+  onChange(event) {
+    this.setState({address: event.target.value});
+    console.log("onchange func");
+    console.log(event.target.value)
+  }
 
   render() {
     return (<div className="all">
@@ -10,7 +15,7 @@ class Welcome extends React.Component {
                     <form action="" method="GET">
                         <div className="form-group ui-widget">
                             <div className="input-group add-on">
-                                <input className="form-control autocomplete" defaultValue="0x23443534" placeholder="Search address..." name="search"/>
+                                <input className="form-control autocomplete" defaultValue="0x23443534" placeholder="Search address..." name="search" onChange={this.onChange.bind(this)}/>
                                 <div className="input-group-btn">
                                     <button className="btn btn-default" type="submit">
                                         <i className="glyphicon glyphicon-search"></i>
@@ -22,50 +27,18 @@ class Welcome extends React.Component {
                 </div>
                 <div className="mainresult">
                 
-                    
-
-
-                    
-                    <h2>Here is the dirty info about the address {this.props.address}:</h2>
-                    <div>
-                        
-
-                        <table width="100%">
-                            <tbody>
-                                <tr>
-                                    <td>
-                                    Amount
-                                    </td>
-                                    <td>
-                                    {this.props.scam_data.infection_data.amount}
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                    infected_by_hash
-                                    </td>
-                                    <td>
-                                    {this.props.scam_data.infection_data.infected_by_hash}
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                    infected_by_addr
-                                    </td>
-                                    <td>
-                                        <a href={"?address=" + this.props.scam_data.infection_data.infected_by_addr}>
-                                            {this.props.scam_data.infection_data.infected_by_addr}
-                                        </a>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-
-                    </div>
                     <h2> Here is the dirty info about the address {this.props.address}</h2>
                     <pre>
                         {JSON.stringify(
                               this.props.data_from_api, undefined, 2
+                            )
+                        }
+                    </pre>
+
+                    <h2> Here is the dirty info about the address {this.props.address} from server</h2>
+                    <pre>
+                        {JSON.stringify(
+                              this.props.data, undefined, 2
                             )
                         }
                     </pre>
