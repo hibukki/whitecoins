@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block content %}
+
+
+<script>
+function do_search_addr(addr) {
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET", "/search_addr/" + addr, false);
+    xhr.send(null);
+    resp = JSON.parse(xhr.responseText);
+    var t = document.getElementById("table");
+    var innerHTML = `
+      <tr>
+        <th>BTC Addr</th>
+        <th>Infected by</th> 
+        <th>BTC</th>
+        <th>USD</th>
+      </tr>
+    `;
+    innerHTML += "<tr>";
+    innerHTML += "<td>" + addr + "</td>";
+    innerHTML += "<td><a onclick=\"do_search_addr('" + resp.infected_by_addr + "');\">" + resp.infected_by_addr + "</a></td>";
+    innerHTML += "<td>" + resp.amount_btc + "</td>";
+    innerHTML += "<td>" + resp.amount_usd + "</td>";
+    innerHTML += "</tr>";
+    
+    t.innerHTML = innerHTML;
+    
+}
+</script>
+
+<h3>WhiteCoins</h3>
+<hr/>
+
+    <form class="form-horizontal" method="post" action="">
+        <fieldset>                    
+            <input type="text" name="addr" id="addr" width="50"></input>
+            <button type=button onclick="do_search_addr(this.form.addr.value);">Search Wallet</button>
+
+            <div class="form-group">                    
+                <div class="col-lg-4  col-lg-offset-4">
+                    <input type="submit" hidden="true" onclick="do_search_addr(this);"></input>
+                </div>
+            </div>                    
+            
+        </fieldset>
+    </form>
+    
+    <font size="4">
+    <table id="table" style="width:100%">
+    </table>
+    </font>
+
+</div>
+
+{% endblock content %}
