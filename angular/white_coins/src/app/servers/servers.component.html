@@ -1,0 +1,19 @@
+<label>Search a transaction or wallet id</label>
+<!--<input-->
+  <!--type="text"-->
+  <!--class="form-control"-->
+  <!--(input)="onUpdateServerName($event)">-->
+<input
+  type="text"
+  class="form-control"
+  (keydown)="keyDownFunction($event)"
+  [(ngModel)]="serverName">
+<!--<p>{{ serverName }}</p>-->
+<button
+  class="btn btn-primary"
+  [disabled]="!allowNewServer"
+  (click)="onCreateServer()">Search</button>
+<!--<p [innerText]="allowNewServer"></p>-->
+<!--<p>{{ serverCreationStatus }}</p>-->
+<p *ngIf="serverCreated">Transaction was searched, {{ serverName }}</p>
+<app-server *ngFor="let server of servers"></app-server>
