@@ -629,12 +629,18 @@ class App extends Component {
         this.setState({curr_scam_info:curr_scam_info});
         // this.person_name = "default_name"
 
-        //fetch('http://142.93.33.226:59876/search_addr/1EgV4FoVhCE7gfYhyV7Ryx9357jc44Gm4z')
-        //  .then(response => response.json())
-        //  .then(data => this.setState({ data }));
+        const fixed_addr = '1EgV4FoVhCE7gfYhyV7Ryx9357jc44Gm4z'
+
+        fetch('http://142.93.33.226:59876/search_addr/' + fixed_addr)
+          .then(response => response.json())
+          .then(data_fixed_addr => this.setState({ data_fixed_addr }));
         console.log("will mount with address:")
         console.log(this.state.address)
-        fetch('http://crypto-pal.net:59876/search_addr/' + this.state.address)
+        console.log(fixed_addr)
+
+        console.log(this.state.address == fixed_addr)
+
+        fetch('http://142.93.33.226:59876/search_addr/' + this.state.address)
           .then(response => response)
           .then(data => this.setState({ data }));
 
@@ -663,6 +669,7 @@ class App extends Component {
                 scam_data={this.state.curr_scam_info}
                 data_from_api={this.state.hardcoded_from_api}
                 data={this.state.data}
+                data_fixed_addr={this.state.data_fixed_addr}
             />
         </div>
       </div>

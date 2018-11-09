@@ -1,11 +1,27 @@
 import React, { Component } from 'react';
 
-class Welcome extends React.Component {
+class Welcome extends Component {
   
+    constructor(props) {
+        // Required step: always call the parent class' constructor
+        super(props);
+
+        // Set the state directly. Use props if necessary.
+        this.state = {
+          data:"Nothing searched yet"
+        }
+    }
+
   onChange(event) {
     this.setState({address: event.target.value});
     console.log("onchange func");
     console.log(event.target.value)
+
+
+    const fixed_addr = '1EgV4FoVhCE7gfYhyV7Ryx9357jc44Gm4z'
+    fetch('http://142.93.33.226:59876/search_addr/' + event.target.value)
+          .then(response => response.json())
+          .then(data => this.setState({ data }));
   }
 
   render() {
@@ -26,22 +42,14 @@ class Welcome extends React.Component {
                     </form>
                 </div>
                 <div className="mainresult">
-                
-                    <h2> Here is the dirty info about the address {this.props.address}</h2>
+                    <h2> Here is the dirty info about the address {this.props.address} from server</h2>
                     <pre>
                         {JSON.stringify(
-                              this.props.data_from_api, undefined, 2
+                              this.state.data, undefined, 2
                             )
                         }
                     </pre>
 
-                    <h2> Here is the dirty info about the address {this.props.address} from server</h2>
-                    <pre>
-                        {JSON.stringify(
-                              this.props.data, undefined, 2
-                            )
-                        }
-                    </pre>
                 </div>
 
                 <div className="footer">
@@ -51,8 +59,7 @@ class Welcome extends React.Component {
                     </h3>
                     <hr/>
                 </div>
-                <div>Hello, {this.props.name}</div>
-                <a onClick={() => this.props.foofunc()}> click me! </a>
+                <div> Hint: There's info for 1EgV4FoVhCE7gfYhyV7Ryx9357jc44Gm4z </div>
             </div>);
   }
 }
