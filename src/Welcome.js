@@ -31,7 +31,7 @@ class Welcome extends Component {
                     <form action="" method="GET">
                         <div className="form-group ui-widget">
                             <div className="input-group add-on">
-                                <input className="form-control autocomplete" defaultValue="0x23443534" placeholder="Search address..." name="search" onChange={this.onChange.bind(this)}/>
+                                <input className="form-control autocomplete" defaultValue="1EgV4FoVhCE7gfYhyV7Ryx9357jc44Gm4z" placeholder="Search address..." name="search" onChange={this.onChange.bind(this)}/>
                                 <div className="input-group-btn">
                                     <button className="btn btn-default" type="submit">
                                         <i className="glyphicon glyphicon-search"></i>
@@ -42,7 +42,7 @@ class Welcome extends Component {
                     </form>
                 </div>
                 <div className="mainresult">
-                    <h2> Here is the dirty info about the address {this.props.address} from server</h2>
+                    <h2> Here is the dirty info about the address</h2>
                     <pre>
                         {JSON.stringify(
                               this.state.data, undefined, 2
@@ -59,7 +59,6 @@ class Welcome extends Component {
                     </h3>
                     <hr/>
                 </div>
-                <div> Hint: There's info for 1EgV4FoVhCE7gfYhyV7Ryx9357jc44Gm4z </div>
             </div>);
   }
 }
