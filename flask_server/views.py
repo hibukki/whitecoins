@@ -30,9 +30,6 @@ def search_addr(btc_addr):
             res = {"infected": False}
         else:
             res = addr
-            resp = make_response(json.dumps(res))
-            resp.headers['Access-Control-Allow-Origin'] = '*'
-            return resp
     else:
         res = addr
         infection_data = res["infection_data"]
