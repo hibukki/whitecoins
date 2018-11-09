@@ -12,3 +12,32 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
     monospace;
 }
+
+.all {
+    align: center;
+            margin: 0 auto;
+            width: 60%;
+            /*border:1px solid black;*/
+            display: grid;
+            grid-template-columns: repeat(2, 16fr);
+            
+            grid-gap: 6px;
+            justify-content: space-evenly;
+            grid-template-areas:    "title title"
+                                    "search search"
+                                    "blank blank"
+                                    "mainresult mainresult"
+                                    "footer footer";
+}
+
+.footer {
+ grid-area: footer;
+}
+
+.search{
+    grid-area: search;
+}
+
+.mainresult {
+    grid-area: mainresult;
+}
