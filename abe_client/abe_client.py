@@ -3,6 +3,8 @@ import psycopg2
 import json
 import os
 import base58
+import time
+import csv
 
 class PostgreSQLInterface(object):
 
@@ -74,8 +76,9 @@ class BTCTxOutput(object):
         # self.pk_hash = pk_hash # The pk_hash from which this input gets its BTC value         
     
 class BTCTransaction(object):
-    def __init__(self, tx_hash, inputs, outputs):
+    def __init__(self, tx_hash, timestamp, inputs, outputs):
         self.tx_hash = tx_hash
+        self.timestamp = int(timestamp)
         self.inputs = inputs
         self.outputs = outputs
         self.total_in = sum([input.value for input in self.inputs])
@@ -91,9 +94,24 @@ class BTCTransaction(object):
     def get_all_out_pk_hashes(self):
         return set([output.pk_hash for output in self.outputs])
         
+    def btc_to_usd(self, btc):
+        btc_usd = find_btc_usd_rate_for_time(self.timestamp)
+        return btc * btc_usd
+        
+    def stsh_to_usd(self, stsh):
+        return self.btc_to_usd(float(stsh) / BTC_STSH)
+        
+    def usd_to_btc(self, usd):
+        btc_usd = find_btc_usd_rate_for_time(self.timestamp)
+        return usd / btc_usd
+        
+    def usd_to_stsh(self, usd):
+        return self.usd_to_btc(usd) * BTC_STSH
+        
     def to_dict(self):
         d = {}
         d["tx_hash"] = self.tx_hash
+        d["ts"] = self.timestamp
         d["inputs"] = [input.to_dict() for input in self.inputs]
         d["outputs"] = [output.to_dict() for output in self.outputs]
         return d
@@ -102,7 +120,7 @@ class BTCTransaction(object):
     def from_dict(cls, d):
         inputs = [BTCTxOutput.from_dict(e) for e in d["inputs"]]
         outputs = [BTCTxOutput.from_dict(e) for e in d["outputs"]]
-        return cls(d["tx_hash"], inputs, outputs)
+        return cls(d["tx_hash"], d["ts"], inputs, outputs)
         
 class BTCWallet(object):
     def __init__(self, pk_hash, input_txs, output_txs):
@@ -113,12 +131,20 @@ class BTCWallet(object):
         self.total_spent = sum([tx.in_map[pk_hash] for tx in self.output_txs])
         self.remaining = self.total_received - self.total_spent
         
-    def find_large_output_txs(self, min_amount):
+    def find_large_output_txs_btc(self, min_btc):
         results = []
         for tx in self.output_txs:
-            if tx.in_map[self.pk_hash] > min_amount:
+            if tx.in_map[self.pk_hash] > min_btc:
                 results.append(tx)
         return results
+        
+    def find_large_output_txs_usd(self, min_usd):
+        results = []
+        for tx in self.output_txs:
+            min_btc = tx.usd_to_stsh(min_usd)
+            if tx.in_map[self.pk_hash] > min_btc:
+                results.append(tx)
+        return results        
         
     def to_dict(self):
         d = {}
@@ -147,6 +173,8 @@ class ABEPostgreSQLClient(PostgreSQLInterface):
         item_hashes_indices = {item_hash: i for i, item_hash in enumerate(item_hashes)}
         res = [0] * len(item_hashes)
         for item_id, item_hash in query_res:
+            if not item_id or not item_hash:
+                raise Exception("Couldn't find some item")
             res[item_hashes_indices[item_hash]] = int(item_id)
         return res
         
@@ -160,6 +188,8 @@ class ABEPostgreSQLClient(PostgreSQLInterface):
         item_ids_indices = {item_id: i for i, item_id in enumerate(item_ids)}
         res = [0] * len(item_ids)
         for item_hash, item_id in query_res:
+            if not item_id or not item_hash:
+                raise Exception("Couldn't find some item")
             res[item_ids_indices[int(item_id)]] = item_hash
         return res         
         
@@ -244,6 +274,17 @@ class ABEPostgreSQLClient(PostgreSQLInterface):
                         ",".join(["'%s'" % txout_id for txout_id in txout_ids]))
         res = self._execute_query(query)
         return [map(int, r) for r in res]
+        
+    def req_get_tx_block_id(self, tx_id):
+        query = "SELECT block_id FROM public.block_tx " \
+                "WHERE tx_id = %d" % tx_id
+        return int(self._execute_query(query)[0][0])
+        
+    def req_get_block_timestamp(self, block_id):
+        query = "SELECT block_ntime FROM public.block " \
+                "WHERE block_id = %d" % block_id
+        return int(self._execute_query(query)[0][0])        
+        
         
     #def 
         
@@ -351,6 +392,9 @@ class BTCChainAnalyzer(object):
         except Exception, e:
             raise Exception("Failed to learn transaction Id %s: %s" % (tx_id, str(e)))
             
+        block_id = self._client.req_get_tx_block_id(tx_id)
+        timestamp = self._client.req_get_block_timestamp(block_id)
+            
         # Get inputs and ouputs for this transaction
         txins = self._client.get_all_txins_for_tx(tx_id)
         txouts = self._client.get_all_txouts_for_tx(tx_id)
@@ -372,7 +416,7 @@ class BTCChainAnalyzer(object):
         for i, (txout_id, value, pk_id) in enumerate(txinouts):
             inputs.append(BTCTxOutput(value, txinout_pk_hashes[i]))
             
-        return BTCTransaction(tx_hash, inputs, outputs)
+        return BTCTransaction(tx_hash, timestamp, inputs, outputs)
         
     def _learn_wallet(self, pk_hash):
         try:
@@ -382,6 +426,7 @@ class BTCChainAnalyzer(object):
             
         # First get all transactions that have an output into this wallet.
         txouts = self._client.req_get_all_txouts_for_pk(pk_id)
+        logging.info("Wallet %s has %d txouts" % (pk_hash, len(txouts)))
         input_tx_ids = set([tx_id for txout_id, tx_id, txout_value in txouts])
         input_txs = []
         for input_tx_id in input_tx_ids:
@@ -424,9 +469,8 @@ class BTCDirtyAddress(object):
         pass
     
 BTC_STSH = 100000000
-class BTCDirtyAddrFollower(object):
-    MINIMUM_DIRTY_AMOUNT = 1 * BTC_STSH
-    
+
+class BTCDirtyAddrFollowerBase(object):    
     def __init__(self, analyzer):
         self._analyzer = analyzer
         self._dirty_addrs = {}
@@ -449,7 +493,7 @@ class BTCDirtyAddrFollower(object):
                 addrs.add(addr)
         return addrs
         
-    def add_infected_addr(self, addr_or_hash, infected_by, amount):
+    def add_infected_addr(self, addr_or_hash, infected_by, **kwargs):
         if len(addr_or_hash) == 40:
             addr = btc_hash_to_addr(addr_or_hash)
         else:
@@ -468,30 +512,8 @@ class BTCDirtyAddrFollower(object):
             infected_by_hash = btc_addr_to_hash(infected_by_addr)
         infection_data["infected_by_addr"] = infected_by_addr
         infection_data["infected_by_hash"] = infected_by_hash
-        infection_data["amount"] = amount
+        infection_data.update(kwargs)
         self._dirty_addrs[addr] = {"infection_data": infection_data}
-        
-    def process_addr(self, addr):
-        logging.info("Processing dirty addr %s" % addr)
-        data = self._dirty_addrs[addr]
-        pk_hash = btc_addr_to_hash(addr)
-        try:
-            wallet = self._analyzer.get_wallet(pk_hash)
-        except Exception, e:
-            data.setdefault("infection_data", {})["processed"] = "Error"
-            raise Exception("Error processing addr %s: %s" % (addr, str(e)))
-        txs = wallet.find_large_output_txs(self.MINIMUM_DIRTY_AMOUNT)
-        all_infected_hashes = set()
-        for tx in txs:
-            infect_hashes = tx.get_all_out_pk_hashes()
-            all_infected_hashes |= infect_hashes
-            for inf_pk_hash in infect_hashes:
-                self.add_infected_addr(inf_pk_hash, pk_hash, tx.in_map[pk_hash])
-        if all_infected_hashes:
-            logging.warn("Infected new addrs: %s" % list(all_infected_hashes))
-        
-        ##
-        data.setdefault("infection_data", {})["processed"] = True
         
     def process_all_unprocessed_addrs(self):
         addrs = self.get_unprocessed_addrs()
@@ -502,9 +524,88 @@ class BTCDirtyAddrFollower(object):
             except Exception, e:
                 #import traceback
                 #traceback.print_exc()
-                logging.error(str(e))
+                logging.error(str(e))        
+                
+    def process_addr(self, addr):
+        logging.info("Processing dirty addr %s" % addr)
+        data = self._dirty_addrs[addr]
+        infection_data = data.setdefault("infection_data", {"processed": False})
+        pk_hash = btc_addr_to_hash(addr)
+        try:
+            wallet = self._analyzer.get_wallet(pk_hash)
+        except Exception, e:
+            infection_data["processed"] = "Error getting wallet: %s" % str(e)
+            logging.error("Error processing addr %s: %s" % (addr, str(e)))
+            return False
+            
+        try:
+            self.process_wallet(wallet, infection_data)
+        except Exception, e:    
+            infection_data["processed"] = "Error processing wallet: %s" % str(e)
+            return False
+        infection_data["processed"] = True
+        return True
         
-    #def find_infected_addrs_by_addr(self, )
+    def process_wallet(self, wallet, infection_data):
+        pass
+        
+class BTCDirtyAddrFollower_BasicThreshold(BTCDirtyAddrFollowerBase):
+    #MINIMUM_DIRTY_AMOUNT = 1000 * BTC_STSH
+    MINIMUM_DIRTY_AMOUNT_USD = 12000.0
+    
+    def process_wallet(self, wallet, infection_data):
+        txs = wallet.find_large_output_txs_usd(self.MINIMUM_DIRTY_AMOUNT_USD)
+        all_infected_hashes = set()
+        for tx in txs:
+            infect_hashes = tx.get_all_out_pk_hashes()
+            all_infected_hashes |= infect_hashes
+            for inf_pk_hash in infect_hashes:
+                amount_btc=tx.in_map[wallet.pk_hash]
+                amount_usd=tx.stsh_to_usd(amount_btc)
+                self.add_infected_addr(inf_pk_hash, wallet.pk_hash, 
+                                        amount_btc=amount_btc, amount_usd=amount_usd)
+        if all_infected_hashes:
+            logging.warn("Infected new addrs: %s" % list(all_infected_hashes))
+        
+class BTCDirtyAddrFollower_WeightedWithInfectionThreshold(BTCDirtyAddrFollowerBase):
+    def process_wallet(self, wallet, infection_data):
+        return
+        # txs = wallet.find_large_output_txs(self.MINIMUM_DIRTY_AMOUNT)
+        # all_infected_hashes = set()
+        # for tx in txs:
+            # infect_hashes = tx.get_all_out_pk_hashes()
+            # all_infected_hashes |= infect_hashes
+            # for inf_pk_hash in infect_hashes:
+                # self.add_infected_addr(inf_pk_hash, pk_hash, tx.in_map[pk_hash])
+        # if all_infected_hashes:
+            # logging.warn("Infected new addrs: %s" % list(all_infected_hashes))
+            
+def load_btc_usd_csv():
+    rates = []
+    with open('btc_to_usd.csv', 'rb') as csvfile:
+        reader = csv.reader(csvfile)
+        for date_str, value in reader:
+            timestamp = int(time.mktime(time.strptime(date_str,"%Y-%m-%d %H:%M:%S")))
+            rates.append((timestamp, float(value)))
+    return rates
+          
+def find_btc_usd_rate_for_time(ts):
+    global g_btc_usd_rates
+    lower = g_btc_usd_rates[0]
+    loweri = 0
+    upper = g_btc_usd_rates[-1] 
+    upperi = len(g_btc_usd_rates) - 1
+    while upperi - loweri != 1:
+        #print upperi, loweri
+        middlei = (loweri + upperi) / 2
+        middle = g_btc_usd_rates[middlei]
+        if ts < middle[0]:
+            upperi = middlei
+            upper = middle
+        else:
+            loweri = middlei
+            lower = middle
+    return (upper[1] + lower[1]) / 2.0
     
         
 PK_HASH_1 = "90b7960f0ed9973adf2b32e37f40dfbf2c996acd"
@@ -520,13 +621,16 @@ TXOUT_ID_1 = 1868450
 TXOUT_ID_2 = 1868451
 
 ABE_CACHE_FNAME = "abe_cache.json"
-DIRTY_ADDRS_FNAME = "dirty_addrs.json"
+DIRTY_ADDRS_FNAME1 = "dirty_addrs1.json"
+DIRTY_ADDRS_FNAME2 = "dirty_addrs2.json"
 
 
 logging.basicConfig()
 logging.getLogger().setLevel(logging.DEBUG)
         
-def main():        
+def main(): 
+    global g_btc_usd_rates
+    g_btc_usd_rates = load_btc_usd_csv()
     c = ABEPostgreSQLClient("abe", "postgres", "btc", "localhost", 5432)
     # res = c.req_get_pubkey_ids_by_hashes([PK_HASH_1, PK_HASH_2, PK_HASH_3])
     # res2 = c.req_get_pubkey_hashes_by_ids(res)
@@ -543,14 +647,20 @@ def main():
         
     a.get_pk_ids([PK_HASH_1, PK_HASH_2])
 
-    f = BTCDirtyAddrFollower(a)
-    if os.path.isfile(DIRTY_ADDRS_FNAME):
-        f.load_state(DIRTY_ADDRS_FNAME)
+    f1 = BTCDirtyAddrFollower_BasicThreshold(a)
+    f2 = BTCDirtyAddrFollower_WeightedWithInfectionThreshold(a)
+    
+    if os.path.isfile(DIRTY_ADDRS_FNAME1):
+        f1.load_state(DIRTY_ADDRS_FNAME1)
+        
+    if os.path.isfile(DIRTY_ADDRS_FNAME2):
+        f2.load_state(DIRTY_ADDRS_FNAME2)
 
     try:
         tx = a.get_tx_by_id(TX_ID_1)
         wallet = a.get_wallet(PK_HASH_1)
-        f.process_all_unprocessed_addrs()
+        f1.process_all_unprocessed_addrs()
+        #f2.process_all_unprocessed_addrs()
         import code
         locs = locals()
         locs.update(globals())
@@ -558,7 +668,8 @@ def main():
     finally:
         print "Saving state"
         a.save_state(ABE_CACHE_FNAME)
-        f.save_state(DIRTY_ADDRS_FNAME)
+        f1.save_state(DIRTY_ADDRS_FNAME1)
+        f2.save_state(DIRTY_ADDRS_FNAME2)
 
 if __name__ == "__main__":
     main()
